@@ -1,0 +1,31 @@
+{
+  "name": "Doorlist",
+  "short_name": "Doorlist",
+  "description": "Guest invitations and door access control.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#EEF1F4",
+  "theme_color": "#121A22",
+  "lang": "en",
+  "categories": ["business", "utilities"],
+  "icons": [
+    {
+      "src": "/pwa-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/pwa-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/pwa-512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

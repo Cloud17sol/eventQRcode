@@ -1,0 +1,39 @@
+{
+  "name": "doorlist",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "oxlint",
+    "preview": "vite preview",
+    "icons": "node scripts/generate-pwa-icons.mjs"
+  },
+  "dependencies": {
+    "@hookform/resolvers": "^5.2.2",
+    "@supabase/supabase-js": "^2.57.4",
+    "@tanstack/react-query": "^5.87.4",
+    "html5-qrcode": "^2.3.8",
+    "lucide-react": "^0.544.0",
+    "qrcode": "^1.5.4",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "react-hook-form": "^7.62.0",
+    "react-hot-toast": "^2.6.0",
+    "react-router-dom": "^7.9.1",
+    "zod": "^4.1.8"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.1.13",
+    "@types/node": "^24.13.3",
+    "@types/qrcode": "^1.5.6",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.7",
+    "@vitejs/plugin-react": "^6.1.1",
+    "oxlint": "^1.81.0",
+    "tailwindcss": "^4.1.13",
+    "typescript": "~5.9.2",
+    "vite": "^8.3.0"
+  }
+}

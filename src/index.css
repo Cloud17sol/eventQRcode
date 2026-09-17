@@ -1,0 +1,67 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Lexend", ui-sans-serif, system-ui, sans-serif;
+  --color-ink: #121a22;
+  --color-ink-soft: #1c2834;
+  --color-paper: #eef1f4;
+  --color-card: #ffffff;
+  --color-line: #d5dce3;
+  --color-copy: #152028;
+  --color-muted: #5c6b78;
+  --color-admit: #1f6b4a;
+  --color-admit-hover: #18573c;
+  --color-warn: #a16207;
+  --color-danger: #b42318;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-paper);
+  color: var(--color-copy);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--color-admit) 22%, white);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-admit);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+.ticket-stub {
+  background-image: radial-gradient(circle at 0 12px, var(--color-paper) 6px, transparent 6.5px);
+  background-size: 100% 16px;
+  background-repeat: repeat-y;
+}
+
+.ticket-perf {
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent 5px,
+    var(--color-line) 5px,
+    var(--color-line) 9px
+  );
+}
