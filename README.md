@@ -27,6 +27,7 @@ In the Supabase SQL editor, run in order:
 9. `supabase/migrations/009_rls_helper_grants.sql`
 10. `supabase/migrations/010_events_select_insert_returning.sql`
 11. `supabase/migrations/011_event_registration.sql`
+12. `supabase/migrations/012_optional_registration_email.sql`
 
 That creates `profiles`, `events`, `guest_categories`, `guests`, `invitations`, `rsvps`, `gates`, `check_ins`, `event_staff`, `event_live_pulse`, and `event_registration`. Invitation lookup, guest search, check-in, staff assignment, live totals, and public registration go through RPCs. Guests use `open_invitation` / `submit_rsvp` / `open_event_registration` / `register_for_event` only — no anonymous table access.
 
@@ -46,7 +47,7 @@ Scanning needs HTTPS. After deploy, open the scanner on the phone, then Add to H
 
 ### Supabase
 
-Use a dedicated production project, or treat the current project as production. Run migrations `001`–`011` in order. In Authentication → URL configuration:
+Use a dedicated production project, or treat the current project as production. Run migrations `001`–`012` in order. In Authentication → URL configuration:
 
 - Site URL: `https://your-app.vercel.app`
 - Redirect URLs: `https://your-app.vercel.app/**`

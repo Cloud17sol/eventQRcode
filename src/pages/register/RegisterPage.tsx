@@ -16,7 +16,10 @@ import { formatEventWhen } from '@/utils/dates'
 
 const schema = z.object({
   name: z.string().min(2, 'Enter your name'),
-  email: z.string().min(1, 'Enter your email').email('Enter a valid email'),
+  email: z
+    .string()
+    .trim()
+    .refine((value) => value.length === 0 || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value), 'Enter a valid email'),
   phone: z.string().min(7, 'Enter a phone number'),
 })
 
@@ -155,11 +158,11 @@ export function RegisterPage() {
           ) : (
             <form className="mt-8 grid gap-4 border-t border-line pt-6" onSubmit={handleSubmit((values) => submit.mutate(values))} noValidate>
               <h2 className="text-base font-semibold">Your details</h2>
-              <p className="text-sm text-muted">Name, email, and phone. The organizer will add table and category later.</p>
+              <p className="text-sm text-muted">Name and phone. Email is optional. The organizer will add table and category later.</p>
               <Field id="name" label="Full name" error={errors.name?.message}>
                 <Input id="name" autoComplete="name" error={Boolean(errors.name)} {...register('name')} />
               </Field>
-              <Field id="email" label="Email" error={errors.email?.message}>
+              <Field id="email" label="Email" hint="Optional" error={errors.email?.message}>
                 <Input id="email" type="email" autoComplete="email" error={Boolean(errors.email)} {...register('email')} />
               </Field>
               <Field id="phone" label="Phone" error={errors.phone?.message}>
