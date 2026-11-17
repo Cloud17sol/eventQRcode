@@ -131,6 +131,28 @@ export async function deleteGuest(guestId: string): Promise<void> {
   if (error) throw new Error(error.message)
 }
 
+const DELETE_CHUNK = 100
+
+export async function deleteGuests(eventId: string, guestIds: string[]): Promise<number> {
+  requireConfigured()
+  const ids = [...new Set(guestIds.filter(Boolean))]
+  if (ids.length === 0) return 0
+
+  for (let index = 0; index < ids.length; index += DELETE_CHUNK) {
+    const chunk = ids.slice(index, index + DELETE_CHUNK)
+    const { error } = await supabase.from('guests').delete().eq('event_id', eventId).in('id', chunk)
+    if (error) throw new Error(error.message)
+  }
+
+  return ids.length
+}
+
+export async function deleteEventGuests(eventId: string): Promise<void> {
+  requireConfigured()
+  const { error } = await supabase.from('guests').delete().eq('event_id', eventId)
+  if (error) throw new Error(error.message)
+}
+
 export async function ensureCategoriesByName(
   eventId: string,
   names: string[],

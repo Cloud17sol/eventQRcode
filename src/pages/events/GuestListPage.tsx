@@ -11,7 +11,7 @@ import { useAdmissions } from '@/hooks/useCheckIns'
 import { useGuestCategories, useGuests } from '@/hooks/useGuests'
 import { useEventInvitations } from '@/hooks/useInvitations'
 import { useEventAccess } from '@/hooks/useStaff'
-import { deleteGuest } from '@/services/guestService'
+import { deleteEventGuests, deleteGuest, deleteGuests } from '@/services/guestService'
 import { getOrganizerInviteToken, markInvitationShared } from '@/services/invitationService'
 import { ensureEventRegistration, setEventRegistrationEnabled } from '@/services/registrationService'
 import type { Event, Guest } from '@/types/database'
@@ -27,7 +27,7 @@ function contactLabel(guest: Guest) {
 }
 
 const iconActionClass =
-  'inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-muted transition-colors duration-200 hover:bg-paper hover:text-copy disabled:cursor-not-allowed disabled:opacity-40'
+  'inline-flex h-8 w-7 cursor-pointer items-center justify-center rounded-lg text-muted transition-colors duration-200 hover:bg-paper hover:text-copy disabled:cursor-not-allowed disabled:opacity-40'
 
 function GuestActions({
   editTo,
@@ -47,7 +47,7 @@ function GuestActions({
   onConfirmDelete: () => void
 }) {
   return (
-    <div className="flex items-center justify-end gap-0.5">
+    <div className="ml-auto flex w-max items-center justify-end gap-0">
       <Link to={editTo} aria-label="Edit guest" title="Edit" className={iconActionClass}>
         <Pencil className="h-4 w-4" />
       </Link>
@@ -104,6 +104,8 @@ export function GuestListPage() {
   const [page, setPage] = useState(0)
   const [busyLink, setBusyLink] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
+  const [selected, setSelected] = useState<string[]>([])
+  const [confirmBulk, setConfirmBulk] = useState<'selected' | 'all' | null>(null)
 
   const invitationsByGuest = useMemo(() => {
     return new Map(invitations.map((item) => [item.guest_id, item]))
@@ -135,13 +137,42 @@ export function GuestListPage() {
 
   useEffect(() => {
     setPage(0)
+    setConfirmBulk(null)
   }, [query, status, categoryId, tableName])
+
+  useEffect(() => {
+    const known = new Set(guests.map((guest) => guest.id))
+    setSelected((current) => {
+      const next = current.filter((id) => known.has(id))
+      return next.length === current.length ? current : next
+    })
+  }, [guests])
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const currentPage = Math.min(page, pageCount - 1)
   const rows = filtered.slice(currentPage * PAGE_SIZE, currentPage * PAGE_SIZE + PAGE_SIZE)
   const from = filtered.length === 0 ? 0 : currentPage * PAGE_SIZE + 1
   const to = Math.min(filtered.length, currentPage * PAGE_SIZE + PAGE_SIZE)
+  const filteredIds = useMemo(() => filtered.map((guest) => guest.id), [filtered])
+  const allFilteredSelected = filteredIds.length > 0 && filteredIds.every((id) => selected.includes(id))
+
+  function toggleSelected(guestId: string) {
+    setConfirmBulk(null)
+    setSelected((current) =>
+      current.includes(guestId) ? current.filter((id) => id !== guestId) : [...current, guestId],
+    )
+  }
+
+  function toggleFiltered() {
+    setConfirmBulk(null)
+    setSelected((current) => {
+      const selectedSet = new Set(current)
+      if (filteredIds.every((id) => selectedSet.has(id))) {
+        return current.filter((id) => !filteredIds.includes(id))
+      }
+      return [...new Set([...current, ...filteredIds])]
+    })
+  }
 
   const remove = useMutation({
     mutationFn: deleteGuest,
@@ -156,6 +187,38 @@ export function GuestListPage() {
       toast.error(err instanceof Error ? err.message : 'Could not delete guest')
     },
   })
+
+  const removeMany = useMutation({
+    mutationFn: (ids: string[]) => deleteGuests(event.id, ids),
+    onSuccess: async (count) => {
+      setSelected([])
+      setConfirmBulk(null)
+      await queryClient.invalidateQueries({ queryKey: ['guests'] })
+      await queryClient.invalidateQueries({ queryKey: ['invitations'] })
+      await queryClient.invalidateQueries({ queryKey: ['admissions'] })
+      toast.success(count === 1 ? 'Guest removed' : `${count} guests removed`)
+    },
+    onError: (err) => {
+      toast.error(err instanceof Error ? err.message : 'Could not delete guests')
+    },
+  })
+
+  const removeAll = useMutation({
+    mutationFn: () => deleteEventGuests(event.id),
+    onSuccess: async () => {
+      setSelected([])
+      setConfirmBulk(null)
+      await queryClient.invalidateQueries({ queryKey: ['guests'] })
+      await queryClient.invalidateQueries({ queryKey: ['invitations'] })
+      await queryClient.invalidateQueries({ queryKey: ['admissions'] })
+      toast.success('All guests removed')
+    },
+    onError: (err) => {
+      toast.error(err instanceof Error ? err.message : 'Could not delete guests')
+    },
+  })
+
+  const bulkBusy = removeMany.isPending || removeAll.isPending
 
   async function copyLink(guestId: string) {
     const invitation = invitationsByGuest.get(guestId)
@@ -346,6 +409,57 @@ export function GuestListPage() {
         </div>
       </div>
 
+      <div className="grid gap-2">
+      {canManage && guests.length > 0 ? (
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-muted">
+            {confirmBulk === 'all'
+              ? 'This removes every guest, invitation, and check-in for this event.'
+              : confirmBulk === 'selected'
+                ? `This also removes invitations and check-ins for ${selected.length} selected ${selected.length === 1 ? 'guest' : 'guests'}.`
+                : selected.length > 0
+                  ? `${selected.length} selected`
+                  : 'Select guests to delete'}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant={confirmBulk === 'selected' ? 'danger' : 'secondary'}
+              disabled={selected.length === 0 || bulkBusy}
+              onClick={() => {
+                if (confirmBulk !== 'selected') {
+                  setConfirmBulk('selected')
+                  return
+                }
+                removeMany.mutate(selected)
+              }}
+            >
+              {removeMany.isPending
+                ? 'Deleting…'
+                : confirmBulk === 'selected'
+                  ? `Confirm ${selected.length}`
+                  : 'Delete selected'}
+            </Button>
+            <Button
+              variant={confirmBulk === 'all' ? 'danger' : 'secondary'}
+              disabled={bulkBusy}
+              onClick={() => {
+                if (confirmBulk !== 'all') {
+                  setConfirmBulk('all')
+                  return
+                }
+                removeAll.mutate()
+              }}
+            >
+              {removeAll.isPending
+                ? 'Deleting…'
+                : confirmBulk === 'all'
+                  ? `Confirm all ${guests.length}`
+                  : 'Delete all'}
+            </Button>
+          </div>
+        </div>
+      ) : null}
+
       {isLoading ? (
         <div className="h-48 animate-pulse rounded-2xl bg-line/70" />
       ) : isError ? (
@@ -362,16 +476,38 @@ export function GuestListPage() {
         <EmptyState title="No matching guests" body="Try another search, category, or status filter." />
       ) : (
         <>
+          {canManage ? (
+            <label className="flex items-center gap-2 text-sm text-muted md:hidden">
+              <input
+                type="checkbox"
+                checked={allFilteredSelected}
+                onChange={toggleFiltered}
+                className="h-4 w-4 rounded border-line accent-admit"
+              />
+              Select all matching
+            </label>
+          ) : null}
           <div className="grid gap-3 md:hidden">
             {rows.map((guest) => (
               <article key={guest.id} className="rounded-2xl border border-line bg-card p-4">
                 <div className="flex items-start justify-between gap-3">
-                  <div>
+                  {canManage ? (
+                    <label className="mt-1 shrink-0">
+                      <span className="sr-only">Select {guest.display_name}</span>
+                      <input
+                        type="checkbox"
+                        checked={selected.includes(guest.id)}
+                        onChange={() => toggleSelected(guest.id)}
+                        className="h-4 w-4 rounded border-line accent-admit"
+                      />
+                    </label>
+                  ) : null}
+                  <div className="min-w-0 flex-1">
                     <p className="font-semibold text-copy">{guest.display_name}</p>
                     <p className="mt-1 text-sm text-muted">{categoryName(guest.guest_category_id)}</p>
                     <p className="mt-1 text-sm text-muted">{contactLabel(guest)}</p>
                   </div>
-                  <span className="text-xs font-medium text-muted">{GUEST_STATUS_LABEL[guest.status]}</span>
+                  <span className="shrink-0 text-xs font-medium text-muted">{GUEST_STATUS_LABEL[guest.status]}</span>
                 </div>
                 <p className="mt-3 text-sm text-muted">
                   {invitationsByGuest.get(guest.id)
@@ -400,14 +536,27 @@ export function GuestListPage() {
             <table className="w-full table-fixed text-left text-sm">
               <thead className="border-b border-line text-xs font-medium text-muted">
                 <tr>
+                  {canManage ? (
+                    <th className="w-10 px-3 py-3 lg:px-4">
+                      <label>
+                        <span className="sr-only">Select all matching guests</span>
+                        <input
+                          type="checkbox"
+                          checked={allFilteredSelected}
+                          onChange={toggleFiltered}
+                          className="h-4 w-4 rounded border-line accent-admit"
+                        />
+                      </label>
+                    </th>
+                  ) : null}
                   <th className="px-3 py-3 lg:px-4">Guest</th>
                   <th className="hidden px-3 py-3 lg:table-cell lg:px-4">Category</th>
                   <th className="hidden px-3 py-3 xl:table-cell xl:px-4">Contact</th>
                   <th className="hidden px-3 py-3 lg:table-cell lg:px-4">Invitation</th>
-                  <th className="px-3 py-3 lg:px-4">RSVP</th>
-                  <th className="w-24 px-3 py-3 lg:px-4">Door</th>
-                  <th className="w-16 px-3 py-3 lg:px-4">Table</th>
-                  <th className="w-[7.5rem] px-2 py-3 text-right">Actions</th>
+                  <th className="w-28 px-3 py-3 lg:px-4">RSVP</th>
+                  <th className="w-20 px-3 py-3 lg:px-4">Door</th>
+                  <th className="w-14 px-3 py-3 lg:px-4">Table</th>
+                  <th className="w-[6.75rem] px-1.5 py-3 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">
@@ -416,6 +565,17 @@ export function GuestListPage() {
                   const remaining = admissionsByGuest.get(guest.id)?.remaining ?? guest.guest_limit
                   return (
                     <tr key={guest.id} className="text-copy">
+                      {canManage ? (
+                        <td className="px-3 py-3 lg:px-4">
+                          <input
+                            type="checkbox"
+                            aria-label={`Select ${guest.display_name}`}
+                            checked={selected.includes(guest.id)}
+                            onChange={() => toggleSelected(guest.id)}
+                            className="h-4 w-4 rounded border-line accent-admit"
+                          />
+                        </td>
+                      ) : null}
                       <td className="min-w-0 px-3 py-3 lg:px-4">
                         <p className="truncate font-medium">{guest.display_name}</p>
                         <p className="mt-0.5 truncate text-xs font-normal text-muted">
@@ -442,7 +602,7 @@ export function GuestListPage() {
                         <span className="mt-0.5 block text-xs text-muted">{remaining} left</span>
                       </td>
                       <td className="truncate px-3 py-3 lg:px-4">{guest.table_name || '—'}</td>
-                      <td className="px-2 py-2">
+                      <td className="px-1.5 py-2">
                         <GuestActions
                           editTo={`/events/${event.id}/guests/${guest.id}`}
                           canCopy={invitationsByGuest.has(guest.id)}
@@ -462,6 +622,7 @@ export function GuestListPage() {
           <div className="flex flex-col gap-3 rounded-2xl border border-line bg-card px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-4">
             <p className="text-sm text-muted">
               {from}–{to} of {filtered.length}
+              {selected.length > 0 ? ` · ${selected.length} selected` : ''}
             </p>
             {pageCount > 1 ? (
               <div className="flex gap-2">
@@ -480,6 +641,7 @@ export function GuestListPage() {
           </div>
         </>
       )}
+      </div>
     </div>
   )
 }
