@@ -53,6 +53,7 @@ export type Event = {
   longitude: number | null
   cover_image_url: string | null
   logo_url: string | null
+  pass_background_color: string
   status: EventStatus
   timezone: string | null
   guest_limit: number | null
@@ -85,6 +86,8 @@ export type EventWriteInput = {
   access_pass_enabled: boolean
   allow_maybe_rsvp: boolean
   fast_scan_enabled: boolean
+  logo_url: string | null
+  pass_background_color: string
 }
 
 export type CreateEventInput = EventWriteInput
@@ -182,6 +185,8 @@ export type OpenInvitation = {
   country?: string | null
   description?: string | null
   cover_image_url?: string | null
+  logo_url?: string | null
+  pass_background_color?: string | null
   event_status?: string
   allow_rsvp?: boolean
   allow_maybe_rsvp?: boolean

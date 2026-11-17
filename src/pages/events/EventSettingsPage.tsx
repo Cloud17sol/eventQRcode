@@ -44,6 +44,7 @@ export function EventSettingsPage() {
       <div className="mt-8">
         <EventForm
           mode="edit"
+          eventId={event.id}
           defaultValues={eventToFormValues(event)}
           submitting={mutation.isPending}
           readOnly={archived}

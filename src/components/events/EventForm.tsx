@@ -1,7 +1,10 @@
+import { useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import toast from 'react-hot-toast'
 import { Button } from '@/components/common/Button'
 import { Field, Input, Select, Textarea } from '@/components/common/Field'
+import { removeEventLogo, uploadEventLogo } from '@/services/storageService'
 import { EVENT_STATUSES, EVENT_TYPES } from '@/types/event'
 import {
   emptyEventFormValues,
@@ -11,6 +14,7 @@ import {
 
 type EventFormProps = {
   mode: 'create' | 'edit'
+  eventId?: string
   defaultValues?: EventFormValues
   submitting?: boolean
   readOnly?: boolean
@@ -21,6 +25,7 @@ type EventFormProps = {
 
 export function EventForm({
   mode,
+  eventId,
   defaultValues = emptyEventFormValues,
   submitting = false,
   readOnly = false,
@@ -32,6 +37,7 @@ export function EventForm({
     register,
     control,
     handleSubmit,
+    setValue,
     watch,
     formState: { errors },
   } = useForm<EventFormValues>({
@@ -39,6 +45,37 @@ export function EventForm({
     defaultValues,
   })
   const currentStatus = watch('status')
+  const logoUrl = watch('logo_url')
+  const passBackground = watch('pass_background_color')
+  const [logoBusy, setLogoBusy] = useState(false)
+
+  async function onLogoFile(file: File | undefined) {
+    if (!eventId || !file) return
+    setLogoBusy(true)
+    try {
+      const url = await uploadEventLogo(eventId, file)
+      setValue('logo_url', url, { shouldDirty: true })
+      toast.success('Logo uploaded')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Could not upload logo')
+    } finally {
+      setLogoBusy(false)
+    }
+  }
+
+  async function onLogoRemove() {
+    if (!eventId) return
+    setLogoBusy(true)
+    try {
+      await removeEventLogo(eventId)
+      setValue('logo_url', '', { shouldDirty: true })
+      toast.success('Logo removed')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Could not remove logo')
+    } finally {
+      setLogoBusy(false)
+    }
+  }
 
   return (
     <form className="grid gap-8" onSubmit={handleSubmit(onSubmit)} noValidate>
@@ -212,6 +249,76 @@ export function EventForm({
           </label>
           <Field id="description" label="Description">
             <Textarea id="description" {...register('description')} />
+          </Field>
+        </section>
+
+        <section className="grid gap-4 rounded-2xl border border-line bg-card p-5 sm:p-6">
+          <h2 className="text-base font-semibold">Access pass look</h2>
+          <p className="text-sm text-muted">
+            Logo and background apply to the guest pass and the downloaded PNG.
+          </p>
+          <input type="hidden" {...register('logo_url')} />
+          {eventId ? (
+            <Field id="logo" label="Event logo" hint="PNG, JPG, or WebP. 2MB or smaller.">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                <div
+                  className="grid h-20 w-20 place-items-center overflow-hidden rounded-xl border border-line bg-paper"
+                  style={{ backgroundColor: passBackground }}
+                >
+                  {logoUrl ? (
+                    <img src={logoUrl} alt="" className="h-full w-full object-contain p-1.5" />
+                  ) : (
+                    <span className="px-2 text-center text-[10px] text-muted">No logo</span>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <label className="inline-flex cursor-pointer items-center justify-center rounded-lg border border-line bg-card px-4 py-2.5 text-sm font-medium text-copy hover:border-copy/30">
+                    {logoBusy ? 'Uploading…' : logoUrl ? 'Replace logo' : 'Upload logo'}
+                    <input
+                      id="logo"
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp"
+                      className="sr-only"
+                      disabled={logoBusy || readOnly}
+                      onChange={(event) => {
+                        const file = event.target.files?.[0]
+                        event.target.value = ''
+                        void onLogoFile(file)
+                      }}
+                    />
+                  </label>
+                  {logoUrl ? (
+                    <Button type="button" variant="secondary" disabled={logoBusy || readOnly} onClick={() => void onLogoRemove()}>
+                      Remove
+                    </Button>
+                  ) : null}
+                </div>
+              </div>
+            </Field>
+          ) : (
+            <p className="text-sm text-muted">Save the event first, then add a logo from settings.</p>
+          )}
+          <Field
+            id="pass_background_color"
+            label="Pass background"
+            error={errors.pass_background_color?.message}
+            hint="Guests will see this color behind the QR card."
+          >
+            <div className="flex items-center gap-3">
+              <input
+                id="pass_background_color"
+                type="color"
+                value={/^#[0-9A-Fa-f]{6}$/.test(passBackground) ? passBackground : '#FFFFFF'}
+                onChange={(event) => setValue('pass_background_color', event.target.value.toUpperCase(), { shouldDirty: true })}
+                className="h-10 w-14 cursor-pointer rounded-lg border border-line bg-card p-1"
+              />
+              <Input
+                value={passBackground}
+                onChange={(event) => setValue('pass_background_color', event.target.value.toUpperCase(), { shouldDirty: true })}
+                error={Boolean(errors.pass_background_color)}
+                aria-label="Pass background hex color"
+              />
+            </div>
           </Field>
         </section>
       </fieldset>

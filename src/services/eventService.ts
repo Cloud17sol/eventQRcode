@@ -28,6 +28,8 @@ function writePayload(input: EventWriteInput) {
     access_pass_enabled: input.access_pass_enabled,
     allow_maybe_rsvp: input.allow_maybe_rsvp,
     fast_scan_enabled: input.fast_scan_enabled,
+    logo_url: input.logo_url,
+    pass_background_color: input.pass_background_color,
   }
 }
 

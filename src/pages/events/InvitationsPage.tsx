@@ -126,6 +126,8 @@ export function InvitationsPage() {
           venue,
           invitationNumber: invitation.invitation_number,
           tableName: guest?.table_name,
+          logoUrl: event.logo_url,
+          backgroundColor: event.pass_background_color,
         },
         url,
       )

@@ -125,6 +125,8 @@ export function InvitePage() {
     invitationNumber: data.invitation_number ?? '',
     category: data.category,
     tableName: data.table_name,
+    logoUrl: data.logo_url,
+    backgroundColor: data.pass_background_color,
   }
 
   async function savePass() {

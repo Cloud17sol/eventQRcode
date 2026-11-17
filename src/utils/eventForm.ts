@@ -2,6 +2,7 @@ import { z } from 'zod'
 import type { Event, EventStatus, EventWriteInput } from '@/types/database'
 import { EVENT_STATUSES } from '@/types/event'
 import { browserTimezone, toTimeInput } from '@/utils/dates'
+import { emptyToNull } from '@/utils/validation'
 
 export const eventFormSchema = z.object({
   name: z.string().min(2, 'Enter an event name'),
@@ -21,6 +22,10 @@ export const eventFormSchema = z.object({
   access_pass_enabled: z.boolean(),
   allow_maybe_rsvp: z.boolean(),
   fast_scan_enabled: z.boolean(),
+  logo_url: z.string(),
+  pass_background_color: z
+    .string()
+    .regex(/^#[0-9A-Fa-f]{6}$/, 'Choose a pass background color'),
   status: z.string(),
 })
 
@@ -44,6 +49,8 @@ export const emptyEventFormValues: EventFormValues = {
   access_pass_enabled: true,
   allow_maybe_rsvp: false,
   fast_scan_enabled: false,
+  logo_url: '',
+  pass_background_color: '#FFFFFF',
   status: 'draft',
 }
 
@@ -66,6 +73,10 @@ export function eventToFormValues(event: Event): EventFormValues {
     access_pass_enabled: event.access_pass_enabled !== false,
     allow_maybe_rsvp: Boolean(event.allow_maybe_rsvp),
     fast_scan_enabled: Boolean(event.fast_scan_enabled),
+    logo_url: event.logo_url ?? '',
+    pass_background_color: /^#[0-9A-Fa-f]{6}$/.test(event.pass_background_color ?? '')
+      ? (event.pass_background_color as string)
+      : '#FFFFFF',
     status: event.status,
   }
 }
@@ -95,6 +106,8 @@ export function formValuesToWriteInput(
     access_pass_enabled: values.access_pass_enabled,
     allow_maybe_rsvp: values.allow_maybe_rsvp,
     fast_scan_enabled: values.fast_scan_enabled,
+    logo_url: emptyToNull(values.logo_url),
+    pass_background_color: values.pass_background_color,
   }
 }
 
