@@ -278,6 +278,7 @@ export function InvitePage() {
             <section className="mt-8 border-t border-line pt-6">
               <h2 className="text-base font-semibold">Access pass</h2>
               <p className="mt-1 text-sm text-muted">Show this at the door. Do not screenshot someone else’s pass.</p>
+              <p className="mt-1 text-sm text-muted">Please download the pass and save it on your device.</p>
               <div className="mt-5">
                 <AccessPass details={passDetails} credentialUrl={invitationUrl(token)} />
               </div>

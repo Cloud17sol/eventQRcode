@@ -55,17 +55,14 @@ export function AccessPass({ details, credentialUrl }: AccessPassProps) {
         Access pass
       </p>
       <h2 className="mt-2 text-2xl font-semibold tracking-tight text-balance">{details.eventName}</h2>
-      <p className="mt-3 text-base font-medium" style={{ color: ink }}>
-        {details.guestName}
-      </p>
-      <p className="mt-1 text-xs tracking-[0.12em]" style={{ color: muted }}>
+      <p className="mt-3 text-xs tracking-[0.12em]" style={{ color: muted }}>
         {details.invitationNumber}
       </p>
 
       <div className="mt-8 grid items-center gap-6 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] sm:text-left">
         <ScanFrame gold={gold} ink={ink}>
           {qr ? (
-            <img src={qr} alt={`QR for ${details.guestName}`} className="h-full w-full bg-white" />
+            <img src={qr} alt="Access pass QR" className="h-full w-full bg-white" />
           ) : (
             <div className="h-full w-full animate-pulse bg-white/80" />
           )}

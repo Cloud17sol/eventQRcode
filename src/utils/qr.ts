@@ -132,8 +132,6 @@ export async function passPngDataUrl(details: AccessPassDetails, credentialUrl: 
 
   ctx.font = '600 40px Lexend, sans-serif'
   const eventLines = wrapText(ctx, details.eventName, contentWidth)
-  ctx.font = '500 28px Lexend, sans-serif'
-  const nameLines = wrapText(ctx, details.guestName, contentWidth)
   const detailWidth = 280
   ctx.font = '600 22px Lexend, sans-serif'
   const whenLines = wrapText(ctx, details.when, detailWidth)
@@ -156,9 +154,7 @@ export async function passPngDataUrl(details: AccessPassDetails, credentialUrl: 
     (logoImage ? 28 : 0) +
     22 +
     eventLines.length * 48 +
-    20 +
-    nameLines.length * 34 +
-    28 +
+    36 +
     48 +
     rowHeight +
     72
@@ -193,12 +189,7 @@ export async function passPngDataUrl(details: AccessPassDetails, credentialUrl: 
     ctx.fillText(line, width / 2, y)
     y += 48
   })
-  y += 8
-  ctx.font = '500 28px Lexend, sans-serif'
-  nameLines.forEach((line) => {
-    ctx.fillText(line, width / 2, y)
-    y += 34
-  })
+  y += 12
   ctx.fillStyle = muted
   ctx.font = '500 18px Lexend, sans-serif'
   ctx.fillText(details.invitationNumber, width / 2, y)
