@@ -103,6 +103,7 @@ export function GuestListPage() {
   const [busyCopy, setBusyCopy] = useState<string | null>(null)
   const [page, setPage] = useState(0)
   const [busyLink, setBusyLink] = useState(false)
+  const [refreshing, setRefreshing] = useState(false)
 
   const invitationsByGuest = useMemo(() => {
     return new Map(invitations.map((item) => [item.guest_id, item]))
@@ -203,6 +204,23 @@ export function GuestListPage() {
     }
   }
 
+  async function refreshList() {
+    setRefreshing(true)
+    try {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['guests'] }),
+        queryClient.invalidateQueries({ queryKey: ['guest-categories'] }),
+        queryClient.invalidateQueries({ queryKey: ['invitations'] }),
+        queryClient.invalidateQueries({ queryKey: ['admissions'] }),
+      ])
+      toast.success('Guest list updated')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Could not refresh guests')
+    } finally {
+      setRefreshing(false)
+    }
+  }
+
   function exportGuests() {
     const csv = toCsv(
       ['name', 'email', 'phone', 'category', 'guest_limit', 'table', 'notes'],
@@ -233,6 +251,9 @@ export function GuestListPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Button variant="secondary" disabled={refreshing} onClick={() => void refreshList()}>
+            {refreshing ? 'Refreshing…' : 'Refresh'}
+          </Button>
           <Button variant="secondary" onClick={exportGuests}>
             Export CSV
           </Button>

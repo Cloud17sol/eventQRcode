@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ClipboardList } from 'lucide-react'
+import toast from 'react-hot-toast'
 import { useOutletContext } from 'react-router-dom'
 import { Button } from '@/components/common/Button'
 import { EmptyState } from '@/components/common/EmptyState'
@@ -29,9 +30,22 @@ function stamp(value: string) {
 export function CheckInsPage() {
   const event = useOutletContext<Event>()
   useEventLive(event.id)
-  const { data: checkIns = [], isLoading, isError, error } = useRecentCheckIns(event.id, 500)
+  const { data: checkIns = [], isLoading, isError, error, refetch } = useRecentCheckIns(event.id, 500)
   const [query, setQuery] = useState('')
   const [page, setPage] = useState(0)
+  const [refreshing, setRefreshing] = useState(false)
+
+  async function refreshList() {
+    setRefreshing(true)
+    try {
+      await refetch()
+      toast.success('Check-ins updated')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Could not refresh check-ins')
+    } finally {
+      setRefreshing(false)
+    }
+  }
 
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase()
@@ -68,7 +82,12 @@ export function CheckInsPage() {
             Append-only log. Search by guest, gate, or method.
           </p>
         </div>
-        {event.status === 'active' ? <Button to={`/scan/${event.id}`}>Open scanner</Button> : null}
+        <div className="flex flex-wrap gap-2">
+          <Button variant="secondary" disabled={refreshing} onClick={() => void refreshList()}>
+            {refreshing ? 'Refreshing…' : 'Refresh'}
+          </Button>
+          {event.status === 'active' ? <Button to={`/scan/${event.id}`}>Open scanner</Button> : null}
+        </div>
       </div>
 
       {checkIns.length > 0 ? (
